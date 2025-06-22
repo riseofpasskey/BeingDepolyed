@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <title>C WASM 실행기 예시</title>
+  <style>
+    body { max-width: 600px; margin: 2em auto; font-family: Arial, sans-serif; }
+    pre {
+      background: #f0f0f0;
+      padding: 1em;
+      border-radius: 6px;
+      border: 1px solid #ccc;
+      min-height: 150px;
+      white-space: pre-wrap;
+    }
+    button {
+      font-size: 16px;
+      padding: 0.5em 1em;
+      cursor: pointer;
+      border-radius: 4px;
+      border: 1px solid #444;
+      background: #eee;
+    }
+  </style>
+</head>
+<body>
+  <h1>C WASM 실행기 (사전 컴파일된 hello.wasm)</h1>
+  <button id="runBtn">실행</button>
+  <h2>출력</h2>
+  <pre id="output"></pre>
+
+  <script>
+    async function loadWasm() {
+      const response = await fetch('hello.wasm');
+      if (!response.ok) throw new Error('hello.wasm 파일을 불러오는데 실패했습니다.');
+      const buffer = await response.arrayBuffer();
+      const module = await WebAssembly.compile(buffer);
+
+      // 임포트 객체, 필요에 따라 확장 가능
+      const imports = {
+        env: {
+          // 예: putchar 함수가 필요하면 여기에 구현
+          putchar: (char) => {
+            // 예시: 콘솔에 문자 출력
+            console.log(String.fromCharCode(char));
+          }
+        }
+      };
+
+      const instance = await WebAssembly.instantiate(module, imports);
+      return instance;
+    }
+
+    document.getElementById('runBtn').addEventListener('click', async () => {
+      const output = document.getElementById('output');
+      output.textContent = '실행 중...';
+
+      try {
+        const instance = await loadWasm();
+
+        // 예시로 exports에 main 함수가 있을 경우 호출
+        if (instance.exports.main) {
+          instance.exports.main();
+          output.textContent = 'WASM 모듈 main() 함수 호출 완료';
+        } else {
+          output.textContent = 'main 함수가 WASM에 없습니다.';
+        }
+      } catch (e) {
+        output.textContent = '오류: ' + e.message;
+      }
+    });
+  </script>
+</body>
+</html>
